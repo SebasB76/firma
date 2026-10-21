@@ -60,3 +60,20 @@ test('rejects a file that is not a Word document', async ({ page }) => {
   await expect(page.locator('#toast')).toHaveText('Ese archivo no es un Word .docx.');
   await expect(page.locator('#doc-panel')).toBeHidden();
 });
+
+test('a #gist link preloads the document and keeps it for the next visit', async ({ page }) => {
+  const content = (await readFile(fixture('contract.docx'))).toString('base64');
+  await page.route('https://api.github.com/gists/abc123', (route) =>
+    route.fulfill({ json: { files: { 'contract.docx.b64': { filename: 'contract.docx.b64', content } } } }));
+
+  await page.goto('./#gist=abc123');
+  await expect(page.locator('#doc-name')).toHaveText('contract.docx');
+  expect(new URL(page.url()).hash).toBe('');
+
+  await page.reload();
+  await expect(page.locator('#doc-name')).toHaveText('contract.docx');
+
+  await page.getByRole('button', { name: 'Quitar' }).click();
+  await page.reload();
+  await expect(page.locator('#doc-panel')).toBeHidden();
+});

@@ -4,6 +4,7 @@ import { extractInk, renderSignature } from './signature.js';
 // Phone photos are 12+ MP; this keeps processing under a second without losing stroke detail.
 const MAX_SIDE = 2000;
 const STORE_KEY = 'firma:last';
+const DOC_KEY = 'firma:doc';
 const FILE_NAME = 'firma.png';
 
 const $ = (id) => document.getElementById(id);
@@ -22,6 +23,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 if (!navigator.canShare) document.querySelectorAll('.share-only').forEach((el) => el.remove());
 showSaved();
 renderDocPanel();
+restoreDoc();
 
 for (const input of [$('camera'), $('gallery')]) {
   input.addEventListener('change', async () => {
@@ -85,7 +87,16 @@ $('saved-share')?.addEventListener('click', async () => share(await savedBlob(),
 $('docx-input').addEventListener('change', async () => {
   const file = $('docx-input').files[0];
   $('docx-input').value = '';
-  if (!file) return;
+  if (file) await loadDoc(file);
+});
+
+$('doc-remove').addEventListener('click', () => {
+  state.doc = null;
+  localStorage.removeItem(DOC_KEY);
+  renderDocPanel();
+});
+
+async function loadDoc(file) {
   try {
     state.doc = await readDocx(file);
   } catch {
@@ -94,12 +105,41 @@ $('docx-input').addEventListener('change', async () => {
   }
   renderDocPanel();
   $('doc-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    localStorage.setItem(DOC_KEY, JSON.stringify({ name: file.name, data: toBase64(bytes) }));
+  } catch {
+    // Storage full or disabled: the document still works until the app closes.
+  }
+}
 
-$('doc-remove').addEventListener('click', () => {
-  state.doc = null;
-  renderDocPanel();
-});
+// A link like #gist=<id> preloads a document kept in a secret gist, so it stays out of this public repo.
+async function restoreDoc() {
+  const gist = new URLSearchParams(location.hash.slice(1)).get('gist');
+  if (gist) {
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+      const res = await fetch(`https://api.github.com/gists/${encodeURIComponent(gist)}`);
+      const file = Object.values((await res.json()).files).find((f) => f.filename.endsWith('.docx.b64'));
+      return loadDoc(docFile(file.filename.replace(/\.b64$/, ''), file.content));
+    } catch {
+      toast('No pude descargar el documento del enlace.');
+    }
+  }
+  const stored = JSON.parse(localStorage.getItem(DOC_KEY) ?? 'null');
+  if (stored) await loadDoc(docFile(stored.name, stored.data));
+}
+
+function docFile(name, base64) {
+  const bytes = Uint8Array.from(atob(base64.replace(/\s/g, '')), (c) => c.charCodeAt(0));
+  return new File([bytes], name, { type: DOCX_MIME });
+}
+
+function toBase64(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
 $('doc-spot').addEventListener('change', (e) => { state.doc.defaultSpot = Number(e.target.value); });
 $('doc-download').addEventListener('click', () => { save(); deliverSignedDoc(state.blob, false); });
 $('doc-share').addEventListener('click', () => { save(); deliverSignedDoc(state.blob, true); });

@@ -1,5 +1,5 @@
 // Bump on every release so phones drop the old cached files.
-const CACHE = 'firma-v2';
+const CACHE = 'firma-v3';
 const ASSETS = [
   './',
   'index.html',
