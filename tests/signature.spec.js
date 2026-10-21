@@ -23,7 +23,7 @@ test('turns a phone photo into a transparent signature PNG', async ({ page }) =>
   const errors = [];
   page.on('pageerror', (err) => errors.push(err.message));
 
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('#gallery').setInputFiles(PHOTO);
   await expect(page.locator('#download')).toBeEnabled();
 
@@ -53,7 +53,7 @@ test('turns a phone photo into a transparent signature PNG', async ({ page }) =>
 });
 
 test('manual crop keeps only the selected part of the signature', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('#camera').setInputFiles(PHOTO);
   await expect(page.locator('#download')).toBeEnabled();
   const before = await inkStats(page);
@@ -72,7 +72,7 @@ test('manual crop keeps only the selected part of the signature', async ({ page 
 });
 
 test('works offline after the first visit', async ({ page, context }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
   await context.setOffline(true);
