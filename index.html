@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14161b">
+  <meta name="description" content="Convierte la foto de tu firma en papel en un PNG sin fondo para Word o PDF.">
+  <title>Firma</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Firma</h1>
+      <p class="sub">Foto de tu firma en papel → PNG sin fondo para Word o PDF.</p>
+    </header>
+
+    <section id="home">
+      <label class="btn primary">
+        Tomar foto
+        <input id="camera" type="file" accept="image/*" capture="environment" hidden>
+      </label>
+      <label class="btn">
+        Elegir de la galería
+        <input id="gallery" type="file" accept="image/*" hidden>
+      </label>
+
+      <ul class="tips">
+        <li>Firma en una hoja blanca con tinta oscura.</li>
+        <li>Toma la foto de cerca, con buena luz y sin tu sombra encima.</li>
+        <li>Deja margen: la firma no debe tocar el borde de la foto.</li>
+      </ul>
+
+      <div id="saved" hidden>
+        <h2>Tu última firma</h2>
+        <div class="preview checker"><img id="saved-img" alt="Última firma guardada"></div>
+        <div class="row">
+          <button id="saved-download" class="btn">Descargar</button>
+          <button id="saved-share" class="btn share-only">Compartir</button>
+        </div>
+      </div>
+
+      <p class="privacy">Tu foto se procesa dentro de tu celular. No se sube a ningún servidor.</p>
+    </section>
+
+    <section id="editor" hidden>
+      <div class="preview checker">
+        <canvas id="result" aria-label="Firma sin fondo"></canvas>
+        <p id="status" role="status"></p>
+      </div>
+
+      <div class="field">
+        <span>Color</span>
+        <div class="chips" id="colors">
+          <button data-color="black" aria-pressed="true">Negro</button>
+          <button data-color="blue" aria-pressed="false">Azul</button>
+          <button data-color="original" aria-pressed="false">Tinta original</button>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>Intensidad</span>
+        <input id="strength" type="range" min="0.7" max="1.4" step="0.05" value="1">
+      </label>
+      <p class="hint">Sube la intensidad si faltan trazos. Bájala si aparecen manchas.</p>
+
+      <button id="crop-toggle" class="btn ghost">Ajustar recorte</button>
+      <div id="crop" hidden>
+        <p class="hint">Arrastra las esquinas para dejar solo la firma.</p>
+        <div class="crop-stage">
+          <img id="crop-img" alt="Foto original">
+          <div id="crop-box">
+            <i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i>
+          </div>
+        </div>
+        <button id="crop-apply" class="btn">Aplicar recorte</button>
+      </div>
+
+      <div class="row">
+        <button id="download" class="btn primary" disabled>Descargar PNG</button>
+        <button id="share" class="btn share-only" disabled>Compartir</button>
+      </div>
+      <button id="copy" class="btn ghost" disabled>Copiar imagen</button>
+      <button id="restart" class="btn ghost">Tomar otra foto</button>
+    </section>
+
+    <div id="toast" role="status" hidden></div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
