@@ -1,3 +1,4 @@
+import { DOCX_MIME, readDocx, signDocx, signedName } from './docx.js';
 import { extractInk, renderSignature } from './signature.js';
 
 // Phone photos are 12+ MP; this keeps processing under a second without losing stroke detail.
@@ -14,11 +15,13 @@ const state = {
   color: 'black',
   strength: 1,
   blob: null,
+  doc: null,
 };
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 if (!navigator.canShare) document.querySelectorAll('.share-only').forEach((el) => el.remove());
 showSaved();
+renderDocPanel();
 
 for (const input of [$('camera'), $('gallery')]) {
   input.addEventListener('change', async () => {
@@ -47,7 +50,10 @@ $('crop-toggle').addEventListener('click', () => {
   const open = $('crop').hidden;
   $('crop').hidden = !open;
   $('crop-toggle').textContent = open ? 'Cerrar recorte' : 'Ajustar recorte';
-  if (open) layoutCropBox();
+  if (open) {
+    layoutCropBox();
+    $('crop').scrollIntoView({ block: 'nearest' });
+  }
 });
 $('crop-apply').addEventListener('click', () => {
   $('crop').hidden = true;
@@ -55,8 +61,8 @@ $('crop-apply').addEventListener('click', () => {
   processAndRender();
 });
 
-$('download').addEventListener('click', () => { save(); download(state.blob); });
-$('share')?.addEventListener('click', () => { save(); share(state.blob); });
+$('download').addEventListener('click', () => { save(); download(state.blob, FILE_NAME); });
+$('share')?.addEventListener('click', () => { save(); share(state.blob, FILE_NAME); });
 $('copy').addEventListener('click', async () => {
   save();
   try {
@@ -70,14 +76,76 @@ $('restart').addEventListener('click', () => {
   $('editor').hidden = true;
   $('home').hidden = false;
   showSaved();
+  renderDocPanel();
 });
 
-$('saved-download').addEventListener('click', async () => download(await savedBlob()));
-$('saved-share')?.addEventListener('click', async () => share(await savedBlob()));
+$('saved-download').addEventListener('click', async () => download(await savedBlob(), FILE_NAME));
+$('saved-share')?.addEventListener('click', async () => share(await savedBlob(), FILE_NAME));
+
+$('docx-input').addEventListener('change', async () => {
+  const file = $('docx-input').files[0];
+  $('docx-input').value = '';
+  if (!file) return;
+  try {
+    state.doc = await readDocx(file);
+  } catch {
+    toast('Ese archivo no es un Word .docx.');
+    return;
+  }
+  renderDocPanel();
+  $('doc-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+$('doc-remove').addEventListener('click', () => {
+  state.doc = null;
+  renderDocPanel();
+});
+$('doc-spot').addEventListener('change', (e) => { state.doc.defaultSpot = Number(e.target.value); });
+$('doc-download').addEventListener('click', () => { save(); deliverSignedDoc(state.blob, false); });
+$('doc-share').addEventListener('click', () => { save(); deliverSignedDoc(state.blob, true); });
+$('doc-use-saved').addEventListener('click', async () => deliverSignedDoc(await savedBlob(), false));
+
+function renderDocPanel() {
+  const { doc } = state;
+  const inEditor = !$('editor').hidden;
+  $('doc-panel').hidden = !doc;
+  // Shown after the preview in the editor, so the signature is checked before signing.
+  if (inEditor) $('editor').insertBefore($('doc-panel'), $('editor').children[1]);
+  else $('home').before($('doc-panel'));
+  document.querySelectorAll('.doc-pick').forEach((el) => { el.hidden = Boolean(doc); });
+  $('download').classList.toggle('primary', !doc);
+  if (!doc) return;
+
+  $('doc-name').textContent = doc.name;
+  const several = doc.spots.length > 1;
+  $('doc-spot-field').hidden = !several;
+  $('doc-spot-text').hidden = several;
+  $('doc-spot').replaceChildren(...doc.spots.map((spot, i) => new Option(spot.label, i, false, i === doc.defaultSpot)));
+  $('doc-spot-text').textContent = `La firma va en: ${doc.spots[doc.defaultSpot].label}`;
+
+  $('doc-next').hidden = inEditor;
+  $('doc-use-saved').hidden = inEditor || !localStorage.getItem(STORE_KEY);
+  $('doc-actions').hidden = !inEditor;
+  const docFile = new File([''], 'x.docx', { type: DOCX_MIME });
+  $('doc-share').hidden = !navigator.canShare?.({ files: [docFile] });
+}
+
+async function deliverSignedDoc(blob, viaShare) {
+  if (!blob || !state.doc) return;
+  const bitmap = await createImageBitmap(blob);
+  const png = { bytes: new Uint8Array(await blob.arrayBuffer()), width: bitmap.width, height: bitmap.height };
+  bitmap.close();
+  const signed = signDocx(state.doc, state.doc.defaultSpot, png);
+  const name = signedName(state.doc.name);
+  if (viaShare) return share(signed, name);
+  download(signed, name);
+  toast('Listo: tu Word firmado se descargó.');
+}
 
 async function openPhoto(file) {
   $('home').hidden = true;
   $('editor').hidden = false;
+  renderDocPanel();
   $('crop').hidden = true;
   $('crop-toggle').textContent = 'Ajustar recorte';
   setActionsEnabled(false);
@@ -132,29 +200,29 @@ async function render() {
 }
 
 function setActionsEnabled(enabled) {
-  for (const id of ['download', 'share', 'copy']) if ($(id)) $(id).disabled = !enabled;
+  for (const id of ['download', 'share', 'copy', 'doc-download', 'doc-share']) if ($(id)) $(id).disabled = !enabled;
 }
 
 function setStatus(text) {
   $('status').textContent = text;
 }
 
-function download(blob) {
+function download(blob, name) {
   if (!blob) return;
   const url = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement('a'), { href: url, download: FILE_NAME });
+  const a = Object.assign(document.createElement('a'), { href: url, download: name });
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-async function share(blob) {
+async function share(blob, name) {
   if (!blob) return;
-  const file = new File([blob], FILE_NAME, { type: 'image/png' });
-  if (!navigator.canShare?.({ files: [file] })) return download(blob);
+  const file = new File([blob], name, { type: blob.type });
+  if (!navigator.canShare?.({ files: [file] })) return download(blob, name);
   try {
-    await navigator.share({ files: [file], title: 'Firma' });
+    await navigator.share({ files: [file], title: name });
   } catch (err) {
-    if (err.name !== 'AbortError') download(blob);
+    if (err.name !== 'AbortError') download(blob, name);
   }
 }
 

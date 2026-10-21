@@ -15,10 +15,29 @@
   <main>
     <header>
       <h1>Firma</h1>
-      <p class="sub">Foto de tu firma en papel → PNG sin fondo para Word o PDF.</p>
+      <p class="sub">Toma una foto de tu firma en papel y ponla en tu Word, o descárgala como PNG sin fondo.</p>
     </header>
 
+    <section id="doc-panel" class="card" hidden>
+      <div class="doc-head">
+        <strong id="doc-name"></strong>
+        <button id="doc-remove" class="link">Quitar</button>
+      </div>
+      <label class="field" id="doc-spot-field">
+        <span>¿Dónde va la firma?</span>
+        <select id="doc-spot"></select>
+      </label>
+      <p id="doc-spot-text" class="hint"></p>
+      <p id="doc-next" class="hint">Ahora toma la foto de tu firma.</p>
+      <button id="doc-use-saved" class="btn">Usar mi firma guardada</button>
+      <div class="row" id="doc-actions">
+        <button id="doc-download" class="btn primary" disabled>Descargar Word firmado</button>
+        <button id="doc-share" class="btn" disabled>Compartir</button>
+      </div>
+    </section>
+
     <section id="home">
+      <label class="btn doc-pick" for="docx-input">Firmar un documento Word</label>
       <label class="btn primary">
         Tomar foto
         <input id="camera" type="file" accept="image/*" capture="environment" hidden>
@@ -67,6 +86,7 @@
       </label>
       <p class="hint">Sube la intensidad si faltan trazos. Bájala si aparecen manchas.</p>
 
+      <label class="btn doc-pick" for="docx-input">Poner esta firma en un Word</label>
       <button id="crop-toggle" class="btn ghost">Ajustar recorte</button>
       <div id="crop" hidden>
         <p class="hint">Arrastra las esquinas para dejar solo la firma.</p>
@@ -87,6 +107,7 @@
       <button id="restart" class="btn ghost">Tomar otra foto</button>
     </section>
 
+    <input id="docx-input" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
     <div id="toast" role="status" hidden></div>
   </main>
   <script type="module" src="app.js"></script>

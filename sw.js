@@ -1,11 +1,13 @@
 // Bump on every release so phones drop the old cached files.
-const CACHE = 'firma-v1';
+const CACHE = 'firma-v2';
 const ASSETS = [
   './',
   'index.html',
   'style.css',
   'app.js',
   'signature.js',
+  'docx.js',
+  'vendor/fflate.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
