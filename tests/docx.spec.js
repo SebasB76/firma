@@ -44,6 +44,8 @@ test('places the signature over the signature line of a Word document', async ({
   expect(signed[0]).toContain(`r:embed="${relId}"`);
   expect(signed[0]).toContain('behindDoc="0"');
   expect(signed[0]).toContain('<wp:wrapNone/>');
+  // Without an explicit empty outline, some Word viewers draw a frame around the picture.
+  expect(signed[0]).toContain('<a:ln><a:noFill/></a:ln>');
   expect(paragraphs(xml)).toHaveLength(paragraphs(strFromU8(unzipSync(new Uint8Array(await readFile(fixture('contract.docx'))))['word/document.xml'])).length);
 });
 

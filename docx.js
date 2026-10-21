@@ -132,11 +132,12 @@ function drawingRun(doc, styleRun, { anchor, relId, id, size, x = 0, y = 0 }) {
     <wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>
     <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
       <pic:pic>
-        <pic:nvPicPr><pic:cNvPr id="${id}" name="firma.png"/><pic:cNvPicPr/></pic:nvPicPr>
+        <pic:nvPicPr><pic:cNvPr id="${id}" name="firma.png"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr>
         <pic:blipFill><a:blip r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
         <pic:spPr>
           <a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
           <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+          <a:noFill/><a:ln><a:noFill/></a:ln>
         </pic:spPr>
       </pic:pic>
     </a:graphicData></a:graphic>`;
